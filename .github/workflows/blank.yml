@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Android APK
+    name: Build TSENA MALAGASY APK
     runs-on: ubuntu-latest
 
     steps:
@@ -31,20 +31,28 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.10
+          gradle-version: 8.1
 
-      - name: Check Android project
+      - name: Show project structure
         run: |
-          echo "===== PROJECT ====="
+          echo "===== ROOT ====="
           ls -la
+
           echo "===== APP ====="
           ls -la app
-          echo "===== GRADLE ====="
-          ls -la gradle
 
-          test -f settings.gradle.kts
-          test -f build.gradle.kts
-          test -d app
+          echo "===== MANIFEST ====="
+          cat app/src/main/AndroidManifest.xml
+
+      - name: Clean Gradle caches
+        run: |
+          echo "Cleaning Gradle caches..."
+
+          rm -rf ~/.gradle/caches
+          rm -rf ~/.gradle/wrapper
+          rm -rf ~/.gradle/daemon
+
+          echo "Gradle caches cleaned."
 
       - name: Configure Internet permission
         run: |
@@ -64,6 +72,7 @@ jobs:
           permission = '<uses-permission android:name="android.permission.INTERNET" />'
 
           if "android.permission.INTERNET" not in content:
+
               pos = content.find(">")
 
               if pos == -1:
@@ -78,7 +87,11 @@ jobs:
 
               manifest.write_text(content)
 
-          print("Internet permission configured.")
+              print("Internet permission added.")
+
+          else:
+              print("Internet permission already exists.")
+
           PY
 
       - name: Verify Internet permission
@@ -88,22 +101,33 @@ jobs:
 
           echo "Internet permission: OK"
 
-      - name: Check Gradle version
-        run: gradle --version
+      - name: Show Gradle version
+        run: |
+          gradle --version
+
+      - name: Clean project
+        run: |
+          gradle clean --no-daemon --refresh-dependencies
 
       - name: Build Debug APK
         run: |
-          gradle assembleDebug --no-daemon
+          gradle assembleDebug \
+            --no-daemon \
+            --refresh-dependencies \
+            --stacktrace
 
-      - name: Find APK
+      - name: Find generated APK
+        if: success()
         run: |
-          echo "===== GENERATED APK ====="
+          echo "===== APK FILES ====="
+
           find app/build/outputs/apk \
             -type f \
             -name "*.apk" \
             -print
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: TSENA-MALAGASY-V1.0-APK
