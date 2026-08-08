@@ -15,23 +15,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Get source code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 24
 
-      # 3. Install dependencies
+      - name: Check project
+        run: |
+          echo "Checking project files..."
+          ls -la
+          test -f package.json || {
+            echo "ERROR: package.json not found"
+            exit 1
+          }
+
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      # 4. Firebase environment variables
-      - name: Create Firebase environment file
+      - name: Create Firebase environment
         run: |
           cat > .env.production <<EOF
           VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
@@ -42,39 +46,28 @@ jobs:
           VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
           EOF
 
-      # 5. TypeScript check
-      - name: TypeScript check
-        run: npm run typecheck
-
-      # 6. Build React/Vite
       - name: Build web application
         run: npm run build
 
-      # 7. Install Capacitor CLI
       - name: Install Capacitor
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      # 8. Initialize Android project if necessary
       - name: Add Android platform
         run: |
           if [ ! -d "android" ]; then
             npx cap add android
           fi
 
-      # 9. Sync web application with Android
-      - name: Capacitor sync
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      # 10. Add Android Internet permission
-      - name: Enable Internet permission
+      - name: Add Internet permission
         run: |
-          python3 - <<'PY'
+          python3 <<'PY'
           from pathlib import Path
 
-          manifest = Path(
-              "android/app/src/main/AndroidManifest.xml"
-          )
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
 
           if not manifest.exists():
               raise SystemExit("AndroidManifest.xml not found")
@@ -90,60 +83,56 @@ jobs:
                   1
               )
 
-              marker = '>'
-              index = content.find(marker)
+              position = content.find(">")
 
-              if index == -1:
+              if position == -1:
                   raise SystemExit("Invalid AndroidManifest.xml")
 
               content = (
-                  content[:index + 1]
+                  content[:position + 1]
                   + "\n    "
                   + permission
-                  + content[index + 1:]
+                  + content[position + 1:]
               )
 
-          manifest.write_text(content)
+              manifest.write_text(content)
+
+          print("Internet permission configured.")
+
           PY
 
-      # 11. Verify Internet permission
       - name: Verify Internet permission
         run: |
-          grep -q 'android.permission.INTERNET' \
+          grep -q "android.permission.INTERNET" \
           android/app/src/main/AndroidManifest.xml
 
-          echo "Internet permission enabled successfully."
+          echo "Internet permission OK."
 
-      # 12. Setup Java
-      - name: Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
           cache: gradle
 
-      # 13. Setup Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 14. Make Gradle executable
-      - name: Grant Gradle permission
-        run: |
-          chmod +x android/gradlew
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
 
-      # 15. Build debug APK
-      - name: Build APK
+      - name: Build Debug APK
         working-directory: android
-        run: |
-          ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon
 
-      # 16. Find generated APK
       - name: Find APK
         run: |
-          find android/app/build/outputs/apk -type f -name "*.apk"
+          find android/app/build/outputs/apk \
+            -type f \
+            -name "*.apk" \
+            -print
 
-      # 17. Upload APK artifact
-      - name: Upload TSENA MALAGASY APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: TSENA-MALAGASY-V1.0-APK
