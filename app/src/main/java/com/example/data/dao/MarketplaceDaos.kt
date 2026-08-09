@@ -14,6 +14,7 @@ import com.example.data.entity.ProductEntity
 import com.example.data.entity.ReportEntity
 import com.example.data.entity.ReviewEntity
 import com.example.data.entity.UserEntity
+import com.example.data.entity.MonetizationTransactionEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -44,6 +45,9 @@ interface UserDao {
 
     @Query("UPDATE users SET sellerStatus = :status, isVerifiedSeller = :isVerified WHERE id = :userId")
     suspend fun updateSellerStatus(userId: String, status: String, isVerified: Boolean)
+
+    @Query("UPDATE users SET isVerifiedSeller = 1, sellerStatus = 'APPROVED' WHERE id = :userId")
+    suspend fun upgradeUserToPro(userId: String)
 
     @Query("DELETE FROM users WHERE id = :userId")
     suspend fun deleteUser(userId: String)
@@ -110,6 +114,9 @@ interface ProductDao {
 
     @Query("UPDATE products SET favoritesCount = favoritesCount + :delta WHERE id = :productId")
     suspend fun updateFavoritesCount(productId: String, delta: Int)
+
+    @Query("UPDATE products SET isFeatured = 1 WHERE id = :productId")
+    suspend fun boostProduct(productId: String)
 
     @Query("DELETE FROM products WHERE id = :productId")
     suspend fun deleteProduct(productId: String)
@@ -200,4 +207,16 @@ interface OrderDao {
 
     @Query("UPDATE orders SET deliveryStatus = :status WHERE orderId = :orderId")
     suspend fun updateDeliveryStatus(orderId: String, status: String)
+}
+
+@Dao
+interface MonetizationDao {
+    @Query("SELECT * FROM monetization_transactions ORDER BY timestamp DESC")
+    fun getAllTransactions(): Flow<List<MonetizationTransactionEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTransaction(transaction: MonetizationTransactionEntity)
+
+    @Query("SELECT SUM(amount) FROM monetization_transactions WHERE status = 'SUCCESS'")
+    fun getTotalRevenue(): Flow<Long?>
 }

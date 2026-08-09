@@ -42,10 +42,26 @@ data class ProductEntity(
     val deliveryAvailable: Boolean = true,
     val negotiationAvailable: Boolean = true,
     val status: String, // DRAFT, PENDING_REVIEW, APPROVED, REJECTED, SOLD, ARCHIVED
+    val isFeatured: Boolean = false, // Gold Sponsorisé Boost
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val views: Int = 0,
     val favoritesCount: Int = 0
+)
+
+@Entity(tableName = "monetization_transactions")
+data class MonetizationTransactionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val userId: String,
+    val userName: String,
+    val type: String, // "COMMISSION", "PRODUCT_BOOST", "PRO_MEMBERSHIP", "BANNER_AD"
+    val amount: Long, // Ariary
+    val paymentMethod: String, // MVOLA, ORANGE_MONEY, AIRTEL_MONEY
+    val phone: String,
+    val referenceCode: String,
+    val status: String = "SUCCESS",
+    val description: String,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "favorites")

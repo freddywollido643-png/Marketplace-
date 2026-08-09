@@ -43,6 +43,84 @@ fun formatAriary(amount: Long): String {
     return "${formatter.format(amount)} Ar"
 }
 
+@Composable
+fun OfflineNotificationBanner(
+    isOffline: Boolean,
+    onOpenSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = isOffline,
+        modifier = modifier
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+            shape = RoundedCornerShape(20.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .testTag("offline_network_banner")
+        ) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.WifiOff,
+                        contentDescription = "Tsy misy internet",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Tsy misy fifandraisana Internet",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 13.sp,
+                        color = Color(0xFF991B1B)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Mba manokafa Data finday na Wi-Fi hahafahanao mampiasa ny TSENA MALAGASY.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF7F1D1D),
+                        lineHeight = 15.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = onOpenSettingsClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.testTag("open_network_settings_button")
+                ) {
+                    Text(
+                        text = "Manokatra",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBarHeader(
@@ -244,22 +322,47 @@ fun ProductCardItem(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Condition Tag (Neuf vs Occasion) in Bento Pill style
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = if (product.condition == "Neuf") MalagasyGreen else Color(0xFFF59E0B),
-                    contentColor = Color.White,
+                // Condition Tag & Featured Gold Tag
+                Row(
                     modifier = Modifier
-                        .padding(8.dp)
-                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                        .align(Alignment.TopStart),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = product.condition.uppercase(),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.5.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
+                    if (product.isFeatured) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MalagasyGold,
+                            contentColor = Color.Black
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Icon(Icons.Default.Bolt, contentDescription = null, tint = Color.Black, modifier = Modifier.size(10.dp))
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "GOLD",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = if (product.condition == "Neuf") MalagasyGreen else Color(0xFFF59E0B),
+                        contentColor = Color.White
+                    ) {
+                        Text(
+                            text = product.condition.uppercase(),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
                 }
 
                 // Favorite Button

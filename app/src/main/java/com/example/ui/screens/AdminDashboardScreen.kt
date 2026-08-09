@@ -17,10 +17,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.entity.MonetizationTransactionEntity
 import com.example.data.entity.ProductEntity
 import com.example.data.entity.ReportEntity
 import com.example.data.entity.UserEntity
+import com.example.ui.components.MonetizationRevenueSummaryCard
 import com.example.ui.components.formatAriary
+import com.example.ui.components.formatAriarySimple
 import com.example.ui.theme.MalagasyGold
 import com.example.ui.theme.MalagasyGreen
 
@@ -31,6 +34,7 @@ fun AdminDashboardScreen(
     allUsers: List<UserEntity>,
     allProducts: List<ProductEntity>,
     allReports: List<ReportEntity>,
+    monetizationTransactions: List<MonetizationTransactionEntity> = emptyList(),
     onApproveSeller: (String) -> Unit,
     onRejectSeller: (String) -> Unit,
     onApproveProduct: (String) -> Unit,
@@ -38,7 +42,7 @@ fun AdminDashboardScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Mpivarotra (Sellers)", "Entana (Products)", "Mpanjifa (Users)", "Fitarainana (Reports)")
+    val tabs = listOf("Mpivarotra", "Entana", "Mpanjifa", "Fitarainana", "Revenus 💰")
 
     Column(
         modifier = modifier
@@ -83,6 +87,7 @@ fun AdminDashboardScreen(
             1 -> ProductModerationTab(pendingProducts, onApproveProduct, onRejectProduct)
             2 -> UserManagementTab(allUsers)
             3 -> ReportsManagementTab(allReports)
+            4 -> AdminRevenuesTab(monetizationTransactions)
         }
     }
 }
@@ -322,6 +327,70 @@ fun ReportsManagementTab(allReports: List<ReportEntity>) {
                         Text("Antony: ${report.reason}", fontWeight = FontWeight.Bold, color = Color.Red, fontSize = 14.sp)
                         Text("Details: ${report.description}", fontSize = 12.sp)
                         Text("Cible: ${report.targetType} (${report.targetId})", fontSize = 11.sp, color = Color.Gray)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminRevenuesTab(transactions: List<MonetizationTransactionEntity>) {
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            MonetizationRevenueSummaryCard(transactions = transactions)
+        }
+
+        item {
+            Text(
+                text = "Tantara ny Fandoavam-bola (${transactions.size})",
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        if (transactions.isEmpty()) {
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text("Tsy mbola misy transaction nidirana amin'ny plateforme.", fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
+            }
+        } else {
+            items(transactions) { txn ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(txn.description, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Mpampiasa: ${txn.userName} (${txn.phone})", fontSize = 11.sp, color = Color.Gray)
+                            Text("Mode: ${txn.paymentMethod} • Ref: ${txn.referenceCode}", fontSize = 10.sp, color = Color.DarkGray)
+                        }
+
+                        Text(
+                            text = formatAriarySimple(txn.amount),
+                            fontWeight = FontWeight.Black,
+                            color = MalagasyGreen,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }

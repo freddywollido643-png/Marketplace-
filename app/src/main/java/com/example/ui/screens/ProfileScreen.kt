@@ -36,6 +36,8 @@ fun ProfileScreen(
     onOpenAuthScreen: () -> Unit,
     onOpenAboutTerms: () -> Unit,
     onContactWhatsApp: () -> Unit,
+    onShowMonetizationGuide: () -> Unit = {},
+    onUpgradeProClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -179,6 +181,22 @@ fun ProfileScreen(
             Text("Safidy sy Fitantanana (Settings)", fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
             Spacer(modifier = Modifier.height(8.dp))
+
+            ProfileMenuItem(
+                icon = Icons.Default.MonetizationOn,
+                title = "Fomba Ahazoana Vola (Business Model)",
+                subtitle = "Jereo amin'ny antsipiriany ny fomba fampidirana vola Alibaba",
+                onClick = onShowMonetizationGuide
+            )
+
+            if (currentUser.accountType == "SELLER") {
+                ProfileMenuItem(
+                    icon = Icons.Default.WorkspacePremium,
+                    title = "Lasa Mpivarotra Gold PRO (15 000 Ar)",
+                    subtitle = "Badge Gold Verified, fampidirana entana vao mainka sy komisiona 2%",
+                    onClick = onUpgradeProClick
+                )
+            }
 
             if (currentUser.accountType == "ADMIN") {
                 ProfileMenuItem(

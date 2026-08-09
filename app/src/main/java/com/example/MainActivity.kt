@@ -10,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -20,12 +21,16 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.entity.ProductEntity
 import com.example.ui.components.AccountSwitcherDialog
+import com.example.ui.components.BoostProductDialog
 import com.example.ui.components.MainTab
 import com.example.ui.components.MarketplaceBottomBar
+import com.example.ui.components.MonetizationGuideDialog
+import com.example.ui.components.OfflineNotificationBanner
 import com.example.ui.components.TopBarHeader
 import com.example.ui.screens.*
 import com.example.ui.theme.TsenaMalagasyTheme
 import com.example.ui.viewmodel.MarketplaceViewModel
+import com.example.util.NetworkObserver
 
 class MainActivity : ComponentActivity() {
 
@@ -37,6 +42,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             TsenaMalagasyTheme {
+                val networkObserver = remember { NetworkObserver(applicationContext) }
+                val isConnected by networkObserver.isConnected.collectAsStateWithLifecycle(initialValue = true)
+
                 val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
                 val approvedProducts by viewModel.searchResults.collectAsStateWithLifecycle()
                 val userFavorites by viewModel.userFavorites.collectAsStateWithLifecycle()
@@ -48,6 +56,7 @@ class MainActivity : ComponentActivity() {
                 val allUsersAdmin by viewModel.allUsersAdmin.collectAsStateWithLifecycle()
                 val allProductsAdmin by viewModel.allProductsAdmin.collectAsStateWithLifecycle()
                 val allReportsAdmin by viewModel.allReportsAdmin.collectAsStateWithLifecycle()
+                val monetizationTransactions by viewModel.allMonetizationTransactions.collectAsStateWithLifecycle()
 
                 val userConversations by viewModel.userConversations.collectAsStateWithLifecycle()
                 val userNotifications by viewModel.userNotifications.collectAsStateWithLifecycle()
@@ -66,12 +75,24 @@ class MainActivity : ComponentActivity() {
                 var currentTab by remember { mutableStateOf(MainTab.HOME) }
                 var secondaryScreen by remember { mutableStateOf<String?>(null) } // "DETAIL", "ADMIN", "SELLER", "AUTH", "ABOUT"
                 var showAccountSwitcher by remember { mutableStateOf(false) }
+                var showMonetizationGuide by remember { mutableStateOf(false) }
+                var productToBoost by remember { mutableStateOf<ProductEntity?>(null) }
 
                 val snackbarHostState = remember { SnackbarHostState() }
 
                 LaunchedEffect(Unit) {
                     viewModel.uiEvents.collect { msg ->
                         Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                LaunchedEffect(isConnected) {
+                    if (!isConnected) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Fampandrenesana: Tsy manokatra Data na Wi-Fi ianao. Tsy misy Internet!",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
 
@@ -119,8 +140,22 @@ class MainActivity : ComponentActivity() {
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
-                        AnimatedContent(
+                    Column(modifier = Modifier.padding(innerPadding)) {
+                        // Offline Network Banner
+                        OfflineNotificationBanner(
+                            isOffline = !isConnected,
+                            onOpenSettingsClick = {
+                                try {
+                                    val intent = Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS)
+                                    startActivity(intent)
+                                } catch (_: Exception) {
+                                    Toast.makeText(this@MainActivity, "Ampaherezo ny Data na Wi-Fi amin'ny Paramètres", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+
+                        Box(modifier = Modifier.weight(1f)) {
+                            AnimatedContent(
                             targetState = secondaryScreen ?: currentTab.route,
                             label = "MainNavigation"
                         ) { target ->
@@ -201,7 +236,13 @@ class MainActivity : ComponentActivity() {
                                     onOpenSellerDashboard = { secondaryScreen = "SELLER" },
                                     onOpenAuthScreen = { secondaryScreen = "AUTH" },
                                     onOpenAboutTerms = { secondaryScreen = "ABOUT" },
-                                    onContactWhatsApp = openWhatsApp
+                                    onContactWhatsApp = openWhatsApp,
+                                    onShowMonetizationGuide = { showMonetizationGuide = true },
+                                    onUpgradeProClick = {
+                                        viewModel.upgradeToPro(15000L, "MVOLA", currentUser?.phone ?: "0340000000", "PRO_MVOLA_888") {
+                                            secondaryScreen = "SELLER"
+                                        }
+                                    }
                                 )
 
                                 "DETAIL" -> {
@@ -230,6 +271,7 @@ class MainActivity : ComponentActivity() {
                                     allUsers = allUsersAdmin,
                                     allProducts = allProductsAdmin,
                                     allReports = allReportsAdmin,
+                                    monetizationTransactions = monetizationTransactions,
                                     onApproveSeller = { id -> viewModel.approveSeller(id) },
                                     onRejectSeller = { id -> viewModel.rejectSeller(id) },
                                     onApproveProduct = { id -> viewModel.approveProduct(id) },
@@ -245,7 +287,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onMarkAsSold = { id -> viewModel.markProductSold(id) },
                                     onDeleteProduct = { id -> viewModel.deleteProduct(id) },
-                                    onContactWhatsApp = openWhatsApp
+                                    onContactWhatsApp = openWhatsApp,
+                                    onBoostProductClick = { prod -> productToBoost = prod },
+                                    onShowMonetizationGuide = { showMonetizationGuide = true }
                                 )
 
                                 "AUTH" -> AuthScreen(
@@ -265,16 +309,35 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
 
-                if (showAccountSwitcher) {
-                    AccountSwitcherDialog(
-                        currentUser = currentUser,
-                        onUserSelected = { selectedUser ->
-                            viewModel.switchUserAccount(selectedUser)
-                        },
-                        onDismiss = { showAccountSwitcher = false }
-                    )
-                }
+            if (showAccountSwitcher) {
+                AccountSwitcherDialog(
+                    currentUser = currentUser,
+                    onUserSelected = { selectedUser ->
+                        viewModel.switchUserAccount(selectedUser)
+                    },
+                    onDismiss = { showAccountSwitcher = false }
+                )
+            }
+
+            if (showMonetizationGuide) {
+                MonetizationGuideDialog(
+                    onDismissRequest = { showMonetizationGuide = false }
+                )
+            }
+
+            if (productToBoost != null) {
+                BoostProductDialog(
+                    product = productToBoost!!,
+                    onDismissRequest = { productToBoost = null },
+                    onConfirmBoost = { amount, method, phone, ref ->
+                        viewModel.boostProduct(productToBoost!!.id, amount, method, phone, ref) {
+                            productToBoost = null
+                        }
+                    }
+                )
+            }
             }
         }
     }

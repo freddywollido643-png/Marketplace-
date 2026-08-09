@@ -8,6 +8,7 @@ import com.example.data.database.TsenaDatabase
 import com.example.data.entity.ConversationEntity
 import com.example.data.entity.FavoriteEntity
 import com.example.data.entity.MessageEntity
+import com.example.data.entity.MonetizationTransactionEntity
 import com.example.data.entity.NotificationEntity
 import com.example.data.entity.ProductEntity
 import com.example.data.entity.ReportEntity
@@ -126,6 +127,13 @@ class MarketplaceViewModel(application: Application) : AndroidViewModel(applicat
     )
 
     val allReportsAdmin: StateFlow<List<ReportEntity>> = repository.getAllReports().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    // Monetization Transactions Admin Flow
+    val allMonetizationTransactions: StateFlow<List<MonetizationTransactionEntity>> = repository.getAllMonetizationTransactions().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
@@ -357,6 +365,35 @@ class MarketplaceViewModel(application: Application) : AndroidViewModel(applicat
                 description = description
             )
             showToast("Voaray ny fitarainanao. Misaotra anao nanampy tamin'ny fiarovana ny tsenanay.")
+        }
+    }
+
+    fun boostProduct(
+        productId: String,
+        amount: Long,
+        paymentMethod: String,
+        phone: String,
+        refCode: String,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            repository.boostProduct(productId, amount, paymentMethod, phone, refCode)
+            showToast("Misaotra! Voamarka ho SPONSORISÉ GOLD ny entana 🌟")
+            onSuccess()
+        }
+    }
+
+    fun upgradeToPro(
+        amount: Long,
+        paymentMethod: String,
+        phone: String,
+        refCode: String,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            repository.upgradeToPro(amount, paymentMethod, phone, refCode)
+            showToast("Miarahaba! Lasa Mpivarotra Gold PRO ianao 👑")
+            onSuccess()
         }
     }
 

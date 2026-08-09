@@ -32,6 +32,8 @@ fun SellerDashboardScreen(
     onMarkAsSold: (String) -> Unit,
     onDeleteProduct: (String) -> Unit,
     onContactWhatsApp: () -> Unit,
+    onBoostProductClick: (ProductEntity) -> Unit = {},
+    onShowMonetizationGuide: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (currentUser == null) {
@@ -87,6 +89,29 @@ fun SellerDashboardScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatCard("Miandry (Pending)", pendingListings.toString(), Icons.Default.HourglassTop, Modifier.weight(1f))
                         StatCard("Efa lafo (Sold)", soldListings.toString(), Icons.Default.Sell, Modifier.weight(1f))
+                    }
+                }
+            }
+
+            // Monetization & Boost Info Banner
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MalagasyGold),
+                    modifier = Modifier.fillMaxWidth().clickable { onShowMonetizationGuide() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFB45309), modifier = Modifier.size(28.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Fomba Ahazoana Vola amin'ny TSENA", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF78350F))
+                            Text("Komisiona 3-5%, Boost Sponsorisé Gold, sy Konty PRO", fontSize = 11.sp, color = Color(0xFF92400E))
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFB45309))
                     }
                 }
             }
@@ -184,7 +209,21 @@ fun SellerDashboardScreen(
                                     color = Color.Gray
                                 )
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    if (product.status == "APPROVED" && !product.isFeatured) {
+                                        Button(
+                                            onClick = { onBoostProductClick(product) },
+                                            colors = ButtonDefaults.buttonColors(containerColor = MalagasyGold, contentColor = Color.Black),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                            modifier = Modifier.height(28.dp)
+                                        ) {
+                                            Icon(Icons.Default.Bolt, contentDescription = null, tint = Color.Black, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Boost Gold", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
                                     if (product.status != "SOLD") {
                                         TextButton(onClick = { onMarkAsSold(product.id) }) {
                                             Text("Avoaka ho lafo", fontSize = 11.sp, color = MalagasyGreen, fontWeight = FontWeight.Bold)

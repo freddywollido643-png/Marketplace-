@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.dao.FavoriteDao
 import com.example.data.dao.MessageDao
+import com.example.data.dao.MonetizationDao
 import com.example.data.dao.NotificationDao
 import com.example.data.dao.OrderDao
 import com.example.data.dao.ProductDao
@@ -16,6 +17,7 @@ import com.example.data.dao.UserDao
 import com.example.data.entity.ConversationEntity
 import com.example.data.entity.FavoriteEntity
 import com.example.data.entity.MessageEntity
+import com.example.data.entity.MonetizationTransactionEntity
 import com.example.data.entity.NotificationEntity
 import com.example.data.entity.OrderEntity
 import com.example.data.entity.ProductEntity
@@ -36,9 +38,10 @@ import kotlinx.coroutines.launch
         ReviewEntity::class,
         ReportEntity::class,
         NotificationEntity::class,
-        OrderEntity::class
+        OrderEntity::class,
+        MonetizationTransactionEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class TsenaDatabase : RoomDatabase() {
@@ -51,6 +54,7 @@ abstract class TsenaDatabase : RoomDatabase() {
     abstract fun reportDao(): ReportDao
     abstract fun notificationDao(): NotificationDao
     abstract fun orderDao(): OrderDao
+    abstract fun monetizationDao(): MonetizationDao
 
     companion object {
         @Volatile
@@ -63,6 +67,7 @@ abstract class TsenaDatabase : RoomDatabase() {
                     TsenaDatabase::class.java,
                     "tsena_malagasy_database.db"
                 )
+                .fallbackToDestructiveMigration()
                 .addCallback(DatabaseCallback(context))
                 .build()
                 INSTANCE = instance

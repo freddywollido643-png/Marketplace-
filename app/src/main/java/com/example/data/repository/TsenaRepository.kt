@@ -5,6 +5,7 @@ import com.example.data.database.TsenaDatabase
 import com.example.data.entity.ConversationEntity
 import com.example.data.entity.FavoriteEntity
 import com.example.data.entity.MessageEntity
+import com.example.data.entity.MonetizationTransactionEntity
 import com.example.data.entity.NotificationEntity
 import com.example.data.entity.OrderEntity
 import com.example.data.entity.ProductEntity
@@ -371,5 +372,91 @@ class TsenaRepository(private val database: TsenaDatabase) {
         )
         database.orderDao().insertOrder(order)
         return orderId
+    }
+
+    // Monetization & Revenue Operations
+    fun getAllMonetizationTransactions(): Flow<List<MonetizationTransactionEntity>> =
+        database.monetizationDao().getAllTransactions()
+
+    fun getTotalRevenue(): Flow<Long?> = database.monetizationDao().getTotalRevenue()
+
+    suspend fun boostProduct(
+        productId: String,
+        amount: Long,
+        paymentMethod: String,
+        phone: String,
+        refCode: String
+    ) {
+        val user = _currentUser.value ?: return
+        database.productDao().boostProduct(productId)
+        val txn = MonetizationTransactionEntity(
+            userId = user.id,
+            userName = user.fullName,
+            type = "PRODUCT_BOOST",
+            amount = amount,
+            paymentMethod = paymentMethod,
+            phone = phone,
+            referenceCode = refCode,
+            description = "Boost entana / Gold Sponsorisé (ID: $productId)"
+        )
+        database.monetizationDao().insertTransaction(txn)
+
+        database.notificationDao().insertNotification(
+            NotificationEntity(
+                userId = user.id,
+                title = "Loha-laharana Gold Sponsorisé! 🌟",
+                message = "Voamarka ho SPONSORISÉ GOLD ny entanao. Lasa ambony indrindra amin'ny Pejy fandraisana izany izao!",
+                type = "BOOST_SUCCESS"
+            )
+        )
+    }
+
+    suspend fun upgradeToPro(
+        amount: Long,
+        paymentMethod: String,
+        phone: String,
+        refCode: String
+    ) {
+        val user = _currentUser.value ?: return
+        database.userDao().upgradeUserToPro(user.id)
+        val txn = MonetizationTransactionEntity(
+            userId = user.id,
+            userName = user.fullName,
+            type = "PRO_MEMBERSHIP",
+            amount = amount,
+            paymentMethod = paymentMethod,
+            phone = phone,
+            referenceCode = refCode,
+            description = "Abonnement Konty PRO Supplier Gold (1 Volana)"
+        )
+        database.monetizationDao().insertTransaction(txn)
+
+        database.notificationDao().insertNotification(
+            NotificationEntity(
+                userId = user.id,
+                title = "Miarahaba! Lasa Mpivarotra PRO ianao 👑",
+                message = "Azonao izao ny Badge GOLD Supplier sy tombontsoa maro amin'ny maha mpivarotra lehibe anao.",
+                type = "PRO_UPGRADE"
+            )
+        )
+    }
+
+    suspend fun recordCommissionFee(
+        orderId: String,
+        amount: Long,
+        paymentMethod: String
+    ) {
+        val user = _currentUser.value ?: return
+        val txn = MonetizationTransactionEntity(
+            userId = user.id,
+            userName = user.fullName,
+            type = "COMMISSION",
+            amount = amount,
+            paymentMethod = paymentMethod,
+            phone = user.phone,
+            referenceCode = "COMM_$orderId",
+            description = "Komisiona Plateforme (Commande #$orderId)"
+        )
+        database.monetizationDao().insertTransaction(txn)
     }
 }
